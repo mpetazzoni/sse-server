@@ -5,8 +5,8 @@ Event stream at `/stream` that can be used for testing client
 applications and SSE client libraries.
 
 I've developed a few of those in my days
-([sseclient-py](https://github.com/mpetazzoni/sseclient-py) in Python,
-and [sse.js](https://github.com/mpetazzoni/sse.js) in JavaScript) and
+([`sseclient-py`](https://github.com/mpetazzoni/sseclient) in Python,
+and [`sse.js`](https://github.com/mpetazzoni/sse.js) in JavaScript) and
 always struggled to have simple, reliable event sources to connect to.
 
 ## Usage
