@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
 
+const defaultListenPort = "8080"
 const messageIdPrefix = "message-"
 const randomStringLength = 16
 
@@ -105,12 +107,17 @@ func (ctx *HandlerContext) StatusHandler(writer http.ResponseWriter, request *ht
 }
 
 func main() {
-	fmt.Println("Hello, world!")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = defaultListenPort
+	}
 
 	ctx := NewHandlerContext()
 	http.HandleFunc("/stream", ctx.StreamHandler)
 	http.HandleFunc("/status", ctx.StatusHandler)
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+
+	fmt.Printf("Starting sse-server at :%s ...\n", port)
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		panic(err)
 	}
 }

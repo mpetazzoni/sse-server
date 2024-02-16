@@ -11,7 +11,9 @@ always struggled to have simple, reliable event sources to connect to.
 
 ## Usage
 
-The easiest is to build and run the Docker image:
+The easiest is to build and run the Docker image. By default,
+`sse-server` listens on port 8080, which you can map to whatever you
+need on the host side:
 
 ```
 $ docker build -t sse-server .
@@ -22,6 +24,15 @@ Otherwise, you can run the Go program directly:
 
 ```
 $ go build && ./sse-server
+Starting sse-server at :8080 ...
+```
+
+You can set the server's listening port with the `PORT` environment
+variable:
+
+```
+$ PORT=8081 ./sse-server
+Starting sse-server at :8081 ...
 ```
 
 ## Endpoints
