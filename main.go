@@ -4,8 +4,10 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -88,18 +90,25 @@ func (ctx *HandlerContext) StreamHandler(srw *StreamResponseWriter, request *htt
 	client := &Client{
 		RemoteAddr:  request.RemoteAddr,
 		ConnectedAt: time.Now(),
-		LastEventId: 0,
+		LastEventId: 1,
 	}
 	ctx.clients[request.RemoteAddr] = client
 
 	lastEventId := request.Header.Get("Last-Event-Id")
 	_, _ = fmt.Sscanf(lastEventId, "message-%d", &client.LastEventId)
 
-	fmt.Printf("Handling incoming request from %s @ %d...\n", client.RemoteAddr, client.LastEventId)
+	count := math.MaxInt
+	_, _ = fmt.Sscanf(request.FormValue("count"), "%d", &count)
+	limit := client.LastEventId + count
+
+	fmt.Printf("Starting stream for %s @ %d...\n", client.RemoteAddr, client.LastEventId)
 
 	srw.Header().Set("Content-Type", "text/event-stream")
 	srw.Header().Set("Cache-Control", "no-cache")
 	srw.Header().Set("Connection", "keep-alive")
+	if count != math.MaxInt {
+		srw.Header().Set("X-Expected-Events", strconv.Itoa(count))
+	}
 	srw.WriteHeader(http.StatusOK)
 
 	err := srw.WriteEvent("hello", fmt.Sprintf("Hello, %s!", client.RemoteAddr))
@@ -107,7 +116,9 @@ func (ctx *HandlerContext) StreamHandler(srw *StreamResponseWriter, request *htt
 		return
 	}
 
-	for ; ; client.LastEventId++ {
+	for ; client.LastEventId < limit; client.LastEventId++ {
+		time.Sleep(1 * time.Second)
+
 		random := GenerateRandomString(client.LastEventId, randomStringLength)
 		err := srw.WriteEvent(
 			fmt.Sprintf("%s%d", messageIdPrefix, client.LastEventId),
@@ -115,7 +126,6 @@ func (ctx *HandlerContext) StreamHandler(srw *StreamResponseWriter, request *htt
 		if err != nil {
 			return
 		}
-		time.Sleep(1 * time.Second)
 	}
 }
 

@@ -87,6 +87,8 @@ data: }
 
 The random string is always the same for a given message number.
 
+#### `Last-Event-ID` header
+
 This endpoint supports the `Last-Event-ID` header as defined by the SSE
 specification, resuming the stream at the given sequence position.
 
@@ -118,4 +120,51 @@ data:   "random": "IdyFCHZMVcGYbsTr"
 data: }
 
 ...
+```
+
+#### `count` parameter
+
+You can specify a `count` query parameter to request a specific number
+of messages to be returned, after which the response automatically ends.
+The server will include an additional `X-Expected-Events` to confirm the
+number of events that will be returned (excluding of the `hello` event).
+
+```
+GET /stream?count=3 HTTP/1.1
+Accept: */*
+Accept-Encoding: gzip, deflate
+Connection: keep-alive
+Host: localhost:8080
+User-Agent: HTTPie/3.2.2
+
+
+
+HTTP/1.1 200 OK
+Cache-Control: no-cache
+Connection: keep-alive
+Content-Type: text/event-stream
+Date: Sat, 17 Feb 2024 02:12:48 GMT
+Transfer-Encoding: chunked
+X-Expected-Events: 3
+
+id: hello
+data: Hello, [::1]:63573!
+
+id: message-1
+data: {
+data:   "time": 1708135969,
+data:   "random": "spheIGLpzXpFGMIH"
+data: }
+
+id: message-2
+data: {
+data:   "time": 1708135970,
+data:   "random": "ViOGllEPvVfdraRk"
+data: }
+
+id: message-3
+data: {
+data:   "time": 1708135971,
+data:   "random": "fURagzOWqsqPXKzj"
+data: }
 ```
