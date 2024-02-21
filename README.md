@@ -168,3 +168,26 @@ data:   "time": 1708135971,
 data:   "random": "fURagzOWqsqPXKzj"
 data: }
 ```
+
+## Authentication
+
+The server supports basic authentication with a bearer token, that the
+server will expect as a `Authorization: Bearer <secret>` HTTP header on
+all requests.
+
+You can set the `AUTH_TOKEN` environment variable to enable it:
+
+```
+$ AUTH_TOKEN=secret ./sse-server
+```
+
+Or use the `AUTH_TOKEN_FILE` environment variable to make the server
+read the token from a file, which can be more secure depending on your
+execution environment:
+
+```
+$ AUTH_TOKEN_FILE=token.txt ./sse-server
+```
+
+Note that `AUTH_TOKEN_FILE` will be tried first, falling back to the
+`AUTH_TOKEN` value (if present).

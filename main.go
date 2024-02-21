@@ -97,11 +97,21 @@ func (ctx *HandlerContext) StreamHandler(srw *StreamResponseWriter, request *htt
 	lastEventId := request.Header.Get("Last-Event-Id")
 	_, _ = fmt.Sscanf(lastEventId, "message-%d", &client.LastEventId)
 
+	limit := math.MaxInt
 	count := math.MaxInt
 	_, _ = fmt.Sscanf(request.FormValue("count"), "%d", &count)
-	limit := client.LastEventId + count
+	if count < 0 {
+		srw.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
-	fmt.Printf("Starting stream for %s @ %d...\n", client.RemoteAddr, client.LastEventId)
+	if count <= math.MaxInt-client.LastEventId {
+		limit = client.LastEventId + count
+	} else {
+		limit = math.MaxInt
+	}
+
+	fmt.Printf("Starting stream for %s, %d -> %d ...\n", client.RemoteAddr, client.LastEventId, limit)
 
 	srw.Header().Set("Content-Type", "text/event-stream")
 	srw.Header().Set("Cache-Control", "no-cache")
@@ -140,32 +150,39 @@ func (ctx *HandlerContext) StatusHandler(srw *StreamResponseWriter, request *htt
 	_, _ = srw.Write(body)
 }
 
-func loggerMiddleware(f HandlerFunc) http.HandlerFunc {
-	return func(writer http.ResponseWriter, request *http.Request) {
-		srw := NewStatusResponseWriter(writer)
-		start := time.Now()
-
-		defer func() {
-			fmt.Printf("%s %s %s %d (%v)\n",
-				start.Format(time.RFC3339),
-				request.Method,
-				request.URL,
-				srw.statusCode,
-				time.Since(start))
-		}()
-		f.ServeHTTP(srw, request)
-	}
-}
-
 func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultListenPort
 	}
 
+	// Read the token from AUTH_TOKEN_FILE, falling back to AUTH_TOKEN value.
+	auth := NewAllowAllAuthValidator()
+	token := os.Getenv("AUTH_TOKEN")
+	tokenFile := os.Getenv("AUTH_TOKEN_FILE")
+	if tokenFile != "" {
+		bytes, err := os.ReadFile(tokenFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading token from '%s': %v; ignoring.\n", tokenFile, err)
+		} else {
+			token = strings.TrimSpace(string(bytes))
+		}
+	}
+
+	if token != "" {
+		auth = NewTokenAuthValidator(token)
+	}
+
+	// Define the middleware stack
+	authMiddleware := NewAuthMiddleware(auth)
+	loggingMiddleware := NewLoggingMiddleware(os.Stdout)
+	adapt := func(handler HandlerFunc) http.HandlerFunc {
+		return AdaptHandler(handler, loggingMiddleware, authMiddleware)
+	}
+
 	ctx := NewHandlerContext()
-	http.HandleFunc("/status", loggerMiddleware(ctx.StatusHandler))
-	http.HandleFunc("/stream", loggerMiddleware(ctx.StreamHandler))
+	http.Handle("/status", adapt(ctx.StatusHandler))
+	http.Handle("/stream", adapt(ctx.StreamHandler))
 
 	fmt.Printf("Starting sse-server at :%s ...\n", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
