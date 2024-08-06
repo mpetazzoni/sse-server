@@ -114,6 +114,7 @@ func (ctx *HandlerContext) StreamHandler(srw *StreamResponseWriter, request *htt
 	fmt.Printf("Starting stream for %s, %d -> %d ...\n", client.RemoteAddr, client.LastEventId, limit)
 
 	srw.Header().Set("Access-Control-Allow-Origin", "*")
+	srw.Header().Set("Access-Control-Allow-Headers", "*")
 	srw.Header().Set("Access-Control-Allow-Methods", "GET")
 	srw.Header().Set("Content-Type", "text/event-stream")
 	srw.Header().Set("Cache-Control", "no-cache")

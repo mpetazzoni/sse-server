@@ -30,6 +30,7 @@ func NewAuthMiddleware(check AuthValidator) HttpMiddleware {
 		return func(srw *StreamResponseWriter, request *http.Request) {
 			if !check(request) {
 				srw.Header().Set("Access-Control-Allow-Origin", "*")
+				srw.Header().Set("Access-Control-Allow-Headers", "*")
 				srw.Header().Set("Access-Control-Allow-Methods", "GET")
 				srw.WriteHeader(http.StatusUnauthorized)
 				return
